@@ -7,8 +7,8 @@
 
 ## How to get started
 1. `pyenv install 3.8.10`
-2. `pyenv local 3.8.10`
-3. `pyenev exec pip install irc3`
+2. from the cloned repository: `pyenv local 3.8.10`
+3. `pyenv exec pip install irc3`
 4. `pyenv exec pip install nba-api`
 5. `cd bot`
 6. Edit the `config.ini` file to change the bot name, server and default channels.
