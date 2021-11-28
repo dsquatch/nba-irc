@@ -44,6 +44,17 @@ class Plugin:
         return cls(old.bot)
 
     def _player_name_to_id(self, name):
+        nicknames = {
+            'steph': 'stephen curry',
+            'steph curry': 'stephen curry',
+            'cp3': 'chris paul',
+            'pg': 'paul george',
+        'dame': 'damian lillard',
+        'shaq': 'shaquille o\'neal'
+
+        }
+        if name in nicknames:
+            name = nicknames[name]
         players = self.players.find_players_by_full_name(name)
         id = None
         if not players:
@@ -141,7 +152,7 @@ class Plugin:
         home_or_away = None
         for game in games:
             if game['HOME_TEAM_ID'] == team_id or game['VISITOR_TEAM_ID'] == team_id:
-                if game['GAME_STATUS_ID'] == 2:
+                if game['GAME_STATUS_ID'] >= 2:
                     if game['HOME_TEAM_ID'] == team_id:
                         home_or_away = "home"
                     else:
@@ -165,11 +176,12 @@ class Plugin:
             for player in players:
                 if player['personId'] == player_id:
                     log = player['statistics']
-                    game_clock = game['gameClock']
+                    game_clock = game['gameStatusText']
+                    minutes = log['minutesCalculated'].replace("PT0","").replace("PT","").replace("M","")
                     log_str = f"{player['name']}"
                     log_str += f" {log['points']} PT  {log['fieldGoalsMade']}-{log['fieldGoalsAttempted']} FG  {log['freeThrowsMade']}-{log['freeThrowsAttempted']} FT "
                     log_str += f" {log['threePointersMade']}-{log['threePointersAttempted']} 3P  {log['reboundsTotal']}/{log['reboundsOffensive']} RB "
-                    log_str += f" {log['assists']} AS  {log['blocks']} BL  {log['steals']} ST  {log['turnovers']} TO  {log['foulsPersonal']} PF  {log['minutesCalculated']} MN "
+                    log_str += f" {log['assists']} AS  {log['blocks']} BL  {log['steals']} ST  {log['turnovers']} TO  {log['foulsPersonal']} PF  {minutes} MN "
                     log_str += f" ({log['plusMinusPoints']}) ({game_clock})"
                     yield log_str 
                     return
