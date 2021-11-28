@@ -23,3 +23,9 @@ We use docopts (http://docopt.org/) to standardize the options for all commands.
 
 ## Potential Problems
 If you are seeing timeout errors, it could be because `stats.nba.com` is blocking your provider. You have the option of changing to different providers or using a proxy. We will be adding configuration options for a proxy.
+
+You can hack it by editing `~/.pyenv/versions/3.8.10/lib/python3.8/site-packages/nba_api/library/http.py`
+and add the following to line 131:
+```
+proxies = {'http': 'http://user:pass@ip:port', 'https': 'http://user:pass@ip:port'} 
+````
