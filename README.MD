@@ -13,6 +13,7 @@
 5. `pyenv exec pip install irc3`
 6. `pyenv exec pip install nba-api`
 7. `cd bot`
-8. Edit the `config.ini` file to change the bot name, server and default channels.
-9. run `pyenv exec irc3 config.ini`
+8. `cp config.ini yourbotname.ini`
+9. Edit the `yourbotname.ini` file to change the bot name, server and default channels.
+10. run `pyenv exec irc3 yourbotname.ini`
 
