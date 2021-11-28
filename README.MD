@@ -6,6 +6,7 @@
 * pip
 
 ## How to get started
+This bot would probably work with other versions of python, but this one is known to work well.
 1. `pyenv install 3.8.10`
 2. from the cloned repository: `pyenv local 3.8.10`
 3. `pyenv exec pip install --upgrade pip`
