@@ -1,9 +1,8 @@
 # An IRC bot for NBA stats
 
 ## Pre-reqs
-* python
-* pyenv
-* pip
+We use pyenv so you don't need to have root access to manage your environment.
+* pyenv https://github.com/pyenv/pyenv
 
 ## How to get started
 This bot would probably work with other versions of python, but this one is known to work well.
@@ -18,3 +17,11 @@ This bot would probably work with other versions of python, but this one is know
 9. Edit the `yourbotname.ini` file to change the bot name, server and default channels.
 10. run `pyenv exec irc3 yourbotname.ini`
 
+## Bot commands
+Once your bot is up and running, type `-help` to see the list of commands.
+For help on a specific command, just type `-help <command>`
+
+We use docopts (http://docopt.org/) to standardize the options for all commands.
+
+## Potential Problems
+If you are seeing timeout errors, it could be because `stats.nba.com` is blocking your provider. You have the option of changing to different providers or using a proxy. We will be adding configuration options for a proxy.
