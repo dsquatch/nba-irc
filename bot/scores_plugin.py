@@ -5,47 +5,8 @@ import irc3
 from irc3.plugins.command import command
 from datetime import datetime
 
-def avg(total, count):
-    return round(total / count, 1) 
+from scores_helpers import avg, h2h_date, opp_from_matchup, pct, schedule_date, short_date, shorten, small_date, today
 
-def pct(total, count):
-    return str(round(total / count, 3))[1:]
-
-def today():
-    return datetime.today().strftime("%Y-%m-%d")
-
-def small_date(date):
-        #2021-11-23T00:00:00
-        datetime_object = datetime.strptime(date,"%Y-%m-%dT00:00:00")
-        if datetime_object.year == datetime.today().year:
-            return datetime_object.strftime("%-m/%-d")
-        else:
-            return datetime_object.strftime("%-m/%-d/%y")
-def short_date( date):
-    #2021-11-23T00:00:00
-    datetime_object = datetime.strptime(date,"%Y-%m-%dT00:00:00")
-    if datetime_object.year == datetime.today().year:
-        return datetime_object.strftime("%b %-d")
-    else:
-        return datetime_object.strftime("%b %-d, %Y")
-
-def schedule_date( date):
-    datetime_object = datetime.strptime(date,"%b %d, %Y")
-    return datetime_object.strftime("%a %-m/%-d")
-
-def h2h_date( date):
-    datetime_object = datetime.strptime(date,"%Y-%m-%d")
-    return datetime_object.strftime("%-m/%-d")
-
-def shorten(word, length):
-    if len(word) <= length + 1:
-        return word
-    return f"{word[:length]}."
-
-def opp_from_matchup(matchup):
-    if '@' in matchup:
-        return matchup[matchup.index('@'):]
-    return matchup[matchup.index('vs.'):]
 
 @irc3.plugin
 class Plugin:
@@ -140,7 +101,6 @@ class Plugin:
             season = None
 
         player = self.players.find_player_by_id(player_id)
-        print(player)
         stats = self.playercareerstats.PlayerCareerStats(player_id=player_id).get_normalized_dict()
         logs = stats['SeasonTotalsRegularSeason']
         if season:
@@ -151,8 +111,6 @@ class Plugin:
         else:
             log = logs[-1]
 
-        #{"PLAYER_ID": 203081, "SEASON_ID": "2021-22", "LEAGUE_ID": "00", "TEAM_ID": 1610612757, "TEAM_ABBREVIATION": "POR", "PLAYER_AGE": 31.0, "GP": 18, "GS": 18, "MIN": 645.0, "FGM": 137, "FGA": 341, "FG_PCT": 0.402, "FG3M": 52, "FG3A": 171, "FG3_PCT": 0.304, "FTM": 76, "FTA": 84, "FT_PCT": 0.905, "OREB": 8, "DREB": 65, "REB": 73, "AST": 145, "STL": 12, "BLK": 7, "TOV": 46, "PF": 27, "PTS": 402}
-        #  Damian Lillard 22.3 PT .402 of 18.9 FG .905 of 4.7 FT .304 of 9.5 3P 4.1/0.4 RB 8.06 AS 0.39 BL 0.67 ST 2.56 TO 1.50 PF 35.8 MN 18/18 GS
         log_str = f" {player['full_name']}"
         log_str += f" {avg(log['PTS'], log['GP'])} PT "
         for stat in [['FG',log['FGM'],log['FGA']],['FT',log['FTM'],log['FTA']],['3P',log['FG3M'],log['FG3A']]]:
@@ -182,7 +140,6 @@ class Plugin:
         live_game_id = None
         home_or_away = None
         for game in games:
-            print(game)
             if game['HOME_TEAM_ID'] == team_id or game['VISITOR_TEAM_ID'] == team_id:
                 if game['GAME_STATUS_ID'] == 2:
                     if game['HOME_TEAM_ID'] == team_id:
@@ -208,14 +165,12 @@ class Plugin:
             for player in players:
                 if player['personId'] == player_id:
                     log = player['statistics']
-                    print(player)
                     game_clock = game['gameClock']
                     log_str = f"{player['name']}"
                     log_str += f" {log['points']} PT  {log['fieldGoalsMade']}-{log['fieldGoalsAttempted']} FG  {log['freeThrowsMade']}-{log['freeThrowsAttempted']} FT "
                     log_str += f" {log['threePointersMade']}-{log['threePointersAttempted']} 3P  {log['reboundsTotal']}/{log['reboundsOffensive']} RB "
                     log_str += f" {log['assists']} AS  {log['blocks']} BL  {log['steals']} ST  {log['turnovers']} TO  {log['foulsPersonal']} PF  {log['minutesCalculated']} MN "
                     log_str += f" ({log['plusMinusPoints']}) ({game_clock})"
-                    #yield f" Loaded {log_count} games."
                     yield log_str 
                     return
             
@@ -247,7 +202,6 @@ class Plugin:
             log_str += f" {log['FG3M']}-{log['FG3A']} 3P  {log['REB']}/{log['OREB']} RB "
             log_str += f" {log['AST']} AS  {log['BLK']} BL  {log['STL']} ST  {log['TOV']} TO  {log['PF']} PF  {minutes} MN "
             log_str += f" ({plus_minus}) ({game_date} {matchup})"
-            #yield f" Loaded {log_count} games."
             yield log_str
         else:
             log_count = len(logs['PlayerGameLogs'])
@@ -266,7 +220,6 @@ class Plugin:
                 stl += log['STL']
                 tov += log['TOV']
                 pf += log['PF']
-            # Damian Lillard   28.4 PT   .462 of 18.2 FG   .975 of 8.0 FT   .396 of 9.6 3P   3.4/0.8 RB  8.0 AS   1.0 BL   0.8 ST   2.8 TO   1.2 PF   37.7 MN   5/5 GS   (last 5 games)
             log_str = f"{logs['PlayerGameLogs'][0]['PLAYER_NAME']}  {avg(pts,log_count)} PT "
             for stat in [['FG',fgm,fga],['FT',ftm,fta],['3P',fg3m,fg3a]]:
                 log_str += f" {pct(stat[1],stat[2])} of {avg(stat[2],log_count)} {stat[0]} "
@@ -296,11 +249,26 @@ class Plugin:
         if len(championships) == 0:
             str_championships = ""
         else:
-            str_championships = f" | Champions {','.join(championships)}"
+            str_championships = f" | 🏆 {','.join(championships)}"
+
+        history = team['TeamHistory']
+        list_history = []
+        for era in history:
+            year_until = era['YEARACTIVETILL']
+            if year_until == 2019:
+                year_until = "" 
+            list_history.append(f"{era['CITY']} {era['NICKNAME']} {era['YEARFOUNDED']}-{year_until}")
+        
+        str_history =""
+        if len(list_history):
+            str_history = f" ({','.join(list_history)}) "
 
         bg = team['TeamBackground'][0]
         team_str = f"{teams[0]['full_name']}:"
-        team_str += f" {bg['ARENA']} {int(bg['ARENACAPACITY']):,} | o: {bg['OWNER']} gm: {bg['GENERALMANAGER']} c: {bg['HEADCOACH']}{str_championships}"
+        capacity = ""
+        if bg['ARENACAPACITY']:
+            capacity = f" {int(bg['ARENACAPACITY']):,} "
+        team_str += f" {bg['ARENA']}{capacity}{str_history}| o: {bg['OWNER']} gm: {bg['GENERALMANAGER']} c: {bg['HEADCOACH']}{str_championships}"
         yield team_str
 
 
@@ -312,12 +280,10 @@ class Plugin:
         team_id = teams[0]['id']
         logs = self.teamgamelogs.TeamGameLogs(season_nullable=self.CURRENT_SEASON, team_id_nullable=team_id,last_n_games_nullable=number_of_games).get_normalized_dict()['TeamGameLogs']
         log_list = []
-        #<+Ticket> Blazers past scores: 11/24 @ Kings L 121-125 | 11/23 vs Nuggets W 119-100 | 11/20 vs 76ers W 118-111 | 11/17 vs Bulls W 112-107 | 11/15 vs Raptors W 118-113 | 11/14 @ Nuggets L 95-124 | 11/12 @ Rockets W 104-92
         for log in logs:
             pts = log['PTS']
             opts = pts+ int(log['PLUS_MINUS'])
             log_list.append(f" {small_date(log['GAME_DATE'])} {opp_from_matchup(log['MATCHUP'])} {log['WL']} {pts}-{opts} ")
-            print(log)
 
         log_str = f" {' | '.join(log_list)} "
         return log_str
@@ -330,7 +296,6 @@ class Plugin:
         
         else:
             scores = self.scoreboard.Scoreboard(day_offset=date_diff)
-        # print(scores.get_normalized_dict())
         games = scores.get_normalized_dict()['GameHeader']
         score_text = ""
         game_status = {}
@@ -444,7 +409,6 @@ class Plugin:
             season = args['<season>']
         else:
             season=self.CURRENT_SEASON
-        print(season)
 
         standings = self.leaguestandings.LeagueStandings(league_id="00",season=season,season_type="Regular Season").get_normalized_dict()['Standings']
 
@@ -535,7 +499,6 @@ class Plugin:
             if not conf or row['Conference'] == conf:
                 if not conf or (conf and row_count > 7):
                     win_pct = f"{row['WinPCT']:.3F}"[1:]
-                    streak = str(row['strCurrentStreak']).replace(' ','')
                     teams.append(f" {row_count}. {row['TeamName']} {row['WINS']}-{row['LOSSES']} {win_pct}" )
                 if not conf and row_count >= 14:
                     break
@@ -573,7 +536,6 @@ class Plugin:
         list_players = []
         for player in players:
             list_players.append(f"#{player['NUM']} {player['PLAYER']}")
-            print(player)
 
 
         season_text = ""
@@ -596,14 +558,12 @@ class Plugin:
             return
         team1_id = teams1[0]['id']
         team1_name = teams1[0]['nickname']
-        team1_abbrev = teams1[0]['abbreviation']
 
         team2_name = args['<team2>']
         teams2 = self.teams.find_teams_by_full_name(team2_name)
         if not teams2[0]:
             yield "Team 2 not found."
             return
-        team2_id = teams2[0]['id']
         team2_name = teams2[0]['nickname']
         team2_abbrev = teams2[0]['abbreviation']
         games = self.leaguegamefinder.LeagueGameFinder(team_id_nullable=team1_id,season_type_nullable='Regular Season',season_nullable=self.CURRENT_SEASON).get_normalized_dict()['LeagueGameFinderResults']
@@ -620,8 +580,6 @@ class Plugin:
                     total_l += 1
 
                 list_games.append(f"{h2h_date(game['GAME_DATE'])} {opp_from_matchup(game['MATCHUP'])} {game['WL']} {pts}-{o_pts}")
-            print(game)
-        #Blazers vs Warriors 0-1  |  11/26 @ Warriors L 103-118  |  12/8 @ Warriors  |  2/24 vs Warriors
         yield f"{team1_name} vs {team2_name} {total_w}-{total_l} | {' | '.join(list_games)}"
 
 
