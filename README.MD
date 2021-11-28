@@ -16,7 +16,7 @@ This bot would probably work with other versions of python, but this one is know
 8. run `pyenv exec irc3 yourbotname.ini`
 
 ## Bot commands
-Once your bot is up and running, type `-help` to see the list of commands.
+Once your bot is up and running, type `-help` in the channel or via /msg to see the list of commands.
 For help on a specific command, just type `-help <command>`
 
 We use docopts (http://docopt.org/) to standardize the options for all commands.
