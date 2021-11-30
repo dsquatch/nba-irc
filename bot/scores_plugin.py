@@ -39,10 +39,8 @@ class Plugin:
         self.boxscore = boxscore
         self.players = players
         self.teams = teams
-        self.CURRENT_SEASON = "2021-22" # TODO this should not be hardcoded
-        self.TEAM_SCORES_GAMES = 7 # number of games to show on -scores <team>
-
-
+        self.CURRENT_SEASON = "2021-22"  # TODO this should not be hardcoded
+        self.TEAM_SCORES_GAMES = 7  # number of games to show on -scores <team>
 
     @classmethod
     def reload(cls, old):
@@ -57,8 +55,8 @@ class Plugin:
             'steph curry': 'stephen curry',
             'cp3': 'chris paul',
             'pg': 'paul george',
-        'dame': 'damian lillard',
-        'shaq': 'shaquille o\'neal'
+            'dame': 'damian lillard',
+            'shaq': 'shaquille o\'neal'
 
         }
         if name in nicknames:
@@ -113,14 +111,15 @@ class Plugin:
         if not player_id:
             yield "Player not found."
             return
-        
+
         if args['<season>']:
             season = args['<season>']
         else:
             season = None
 
         player = self.players.find_player_by_id(player_id)
-        stats = self.playercareerstats.PlayerCareerStats(player_id=player_id).get_normalized_dict()
+        stats = self.playercareerstats.PlayerCareerStats(
+            player_id=player_id).get_normalized_dict()
         logs = stats['SeasonTotalsRegularSeason']
         if season:
             log = logs[-1]
@@ -132,13 +131,13 @@ class Plugin:
 
         log_str = f" {player['full_name']}"
         log_str += f" {avg(log['PTS'], log['GP'])} PT "
-        for stat in [['FG',log['FGM'],log['FGA']],['FT',log['FTM'],log['FTA']],['3P',log['FG3M'],log['FG3A']]]:
+        for stat in [['FG', log['FGM'], log['FGA']], ['FT', log['FTM'], log['FTA']], ['3P', log['FG3M'], log['FG3A']]]:
             log_str += f" {pct(stat[1],stat[2])} of {avg(stat[2],log['GP'])} {stat[0]} "
-        for stat in [['RB',log['REB']],['AS',log['AST']],['BLK',log['BLK']],['ST',log['STL']],['TO',log['TOV']],['PF',log['PF']]]:
+        for stat in [['RB', log['REB']], ['AS', log['AST']], ['BLK', log['BLK']], ['ST', log['STL']], ['TO', log['TOV']], ['PF', log['PF']]]:
             log_str += f" {avg(stat[1],log['GP'])} {stat[0]} "
         log_str += f" ({log['SEASON_ID']} {log['TEAM_ABBREVIATION']})"
         yield log_str
-    
+
     @command(permission='view')
     def stats(self, mask, target, args):
         """Game stats
@@ -151,10 +150,16 @@ class Plugin:
             yield "Player not found."
             return
 
-        player_info = self.commonplayerinfo.CommonPlayerInfo(player_id=player_id)
-        team_id = player_info.get_normalized_dict()['CommonPlayerInfo'][0]['TEAM_ID']
+        player_info = self.commonplayerinfo.CommonPlayerInfo(
+            player_id=player_id)
+        team_id = player_info.get_normalized_dict(
+        )['CommonPlayerInfo'][0]['TEAM_ID']
 
-        scores = self.scoreboard.Scoreboard(day_offset=0)
+        day_offset = 0
+        if datetime.now().hour < 8:
+            day_offset = -1
+
+        scores = self.scoreboard.Scoreboard(day_offset=day_offset)
         games = scores.get_normalized_dict()['GameHeader']
         live_game_id = None
         home_or_away = None
@@ -171,11 +176,11 @@ class Plugin:
                     break
                 else:
                     break
-        
-        log_str = None 
+
+        log_str = None
         if live_game_id:
             box = self.boxscore.BoxScore(game_id=live_game_id)
-            game = box.game.get_dict()  
+            game = box.game.get_dict()
 
             if home_or_away == "home":
                 players = box.home_team_player_stats.get_dict()
@@ -185,15 +190,16 @@ class Plugin:
                 if player['personId'] == player_id:
                     log = player['statistics']
                     game_clock = game['gameStatusText']
-                    minutes = log['minutesCalculated'].replace("PT0","").replace("PT","").replace("M","")
+                    minutes = log['minutesCalculated'].replace(
+                        "PT0", "").replace("PT", "").replace("M", "")
                     log_str = f"{player['name']}"
                     log_str += f" {log['points']} PT  {log['fieldGoalsMade']}-{log['fieldGoalsAttempted']} FG  {log['freeThrowsMade']}-{log['freeThrowsAttempted']} FT "
                     log_str += f" {log['threePointersMade']}-{log['threePointersAttempted']} 3P  {log['reboundsTotal']}/{log['reboundsOffensive']} RB "
                     log_str += f" {log['assists']} AS  {log['blocks']} BL  {log['steals']} ST  {log['turnovers']} TO  {log['foulsPersonal']} PF  {minutes} MN "
                     log_str += f" ({log['plusMinusPoints']}) ({game_clock})"
-                    yield log_str 
+                    yield log_str
                     return
-            
+
         season = self.CURRENT_SEASON
         number_of_games = 1
         game_date = None
@@ -201,11 +207,11 @@ class Plugin:
             game_date = args['<date>']
             number_of_games = 1
         elif args['<number_of_games>']:
-            number_of_games = args['<number_of_games>'] 
+            number_of_games = args['<number_of_games>']
 
         logs = self.playergamelogs.PlayerGameLogs(player_id_nullable=player_id,
-        last_n_games_nullable=number_of_games,date_to_nullable=game_date,date_from_nullable=game_date,
-        season_nullable=season).get_normalized_dict()
+                                                  last_n_games_nullable=number_of_games, date_to_nullable=game_date, date_from_nullable=game_date,
+                                                  season_nullable=season).get_normalized_dict()
 
         if len(logs['PlayerGameLogs']) == 0:
             yield "No games this season"
@@ -244,14 +250,13 @@ class Plugin:
                 tov += log['TOV']
                 pf += log['PF']
             log_str = f"{logs['PlayerGameLogs'][0]['PLAYER_NAME']}  {avg(pts,log_count)} PT "
-            for stat in [['FG',fgm,fga],['FT',ftm,fta],['3P',fg3m,fg3a]]:
+            for stat in [['FG', fgm, fga], ['FT', ftm, fta], ['3P', fg3m, fg3a]]:
                 log_str += f" {pct(stat[1],stat[2])} of {avg(stat[2],log_count)} {stat[0]} "
-            for stat in [['RB',reb],['AS',ast],['BLK',blk],['ST',stl],['TO',tov],['PF',pf]]:
+            for stat in [['RB', reb], ['AS', ast], ['BLK', blk], ['ST', stl], ['TO', tov], ['PF', pf]]:
                 log_str += f" {avg(stat[1],log_count)} {stat[0]} "
-            log_str += f" (last {log_count} games)" 
+            log_str += f" (last {log_count} games)"
             yield log_str
 
-    
     @command(permission='view')
     def team(self, mask, target, args):
         """Team
@@ -264,7 +269,8 @@ class Plugin:
             yield "Team not found."
             return
         team_id = teams[0]['id']
-        team = self.teamdetails.TeamDetails(team_id=team_id).get_normalized_dict()
+        team = self.teamdetails.TeamDetails(
+            team_id=team_id).get_normalized_dict()
         championships = [
             f"{championship['YEARAWARDED']}"
             for championship in team['TeamAwardsChampionships']
@@ -279,10 +285,11 @@ class Plugin:
         for era in history:
             year_until = era['YEARACTIVETILL']
             if year_until == 2019:
-                year_until = "" 
-            list_history.append(f"{era['CITY']} {era['NICKNAME']} {era['YEARFOUNDED']}-{year_until}")
-        
-        str_history =""
+                year_until = ""
+            list_history.append(
+                f"{era['CITY']} {era['NICKNAME']} {era['YEARFOUNDED']}-{year_until}")
+
+        str_history = ""
         if len(list_history):
             str_history = f" ({','.join(list_history)}) "
 
@@ -294,29 +301,27 @@ class Plugin:
         team_str += f" {bg['ARENA']}{capacity}{str_history}| o: {bg['OWNER']} gm: {bg['GENERALMANAGER']} c: {bg['HEADCOACH']}{str_championships}"
         yield team_str
 
-
-
     def _team_scores(self, team_name, number_of_games):
         teams = self.teams.find_teams_by_full_name(team_name)
         if not teams[0]:
             return "Team not found."
         team_id = teams[0]['id']
-        logs = self.teamgamelogs.TeamGameLogs(season_nullable=self.CURRENT_SEASON, team_id_nullable=team_id,last_n_games_nullable=number_of_games).get_normalized_dict()['TeamGameLogs']
+        logs = self.teamgamelogs.TeamGameLogs(season_nullable=self.CURRENT_SEASON, team_id_nullable=team_id,
+                                              last_n_games_nullable=number_of_games).get_normalized_dict()['TeamGameLogs']
         log_list = []
         for log in logs:
             pts = log['PTS']
-            opts = pts+ int(log['PLUS_MINUS'])
-            log_list.append(f" {small_date(log['GAME_DATE'])} {opp_from_matchup(log['MATCHUP'])} {log['WL']} {pts}-{opts} ")
+            opts = pts + int(log['PLUS_MINUS'])
+            log_list.append(
+                f" {small_date(log['GAME_DATE'])} {opp_from_matchup(log['MATCHUP'])} {log['WL']} {pts}-{opts} ")
 
         log_str = f" {' | '.join(log_list)} "
         return log_str
 
-
-
     def _get_scoreboard(self, date_diff=None, score_date=None):
         if score_date:
             scores = self.scoreboard.Scoreboard(game_date=score_date)
-        
+
         else:
             scores = self.scoreboard.Scoreboard(day_offset=date_diff)
         games = scores.get_normalized_dict()['GameHeader']
@@ -345,19 +350,18 @@ class Plugin:
                         score_text += " | "
                     else:
                         score_text = f"Today: "
-                
+
                     t1_name = score['homeTeam']['teamTricode']
                     t1_pts = score['homeTeam']['score']
                     t2_name = score['awayTeam']['teamTricode']
                     t2_pts = score['awayTeam']['score']
                     if score['gameLeaders']['homeLeaders']['points'] > score['gameLeaders']['awayLeaders']['points']:
                         scorer_id = score['gameLeaders']['homeLeaders']['personId']
-                        stats = f" {score['gameLeaders']['homeLeaders']['points']}/{score['gameLeaders']['homeLeaders']['rebounds']}/{score['gameLeaders']['homeLeaders']['assists']}"  
+                        stats = f" {score['gameLeaders']['homeLeaders']['points']}/{score['gameLeaders']['homeLeaders']['rebounds']}/{score['gameLeaders']['homeLeaders']['assists']}"
                     else:
                         scorer_id = score['gameLeaders']['awayLeaders']['personId']
-                        stats = f" {score['gameLeaders']['awayLeaders']['points']}/{score['gameLeaders']['awayLeaders']['rebounds']}/{score['gameLeaders']['awayLeaders']['assists']}"  
-                    player = self.players.find_player_by_id(scorer_id) 
-
+                        stats = f" {score['gameLeaders']['awayLeaders']['points']}/{score['gameLeaders']['awayLeaders']['rebounds']}/{score['gameLeaders']['awayLeaders']['assists']}"
+                    player = self.players.find_player_by_id(scorer_id)
 
                     score_text += f"{t1_name} {t1_pts} {t2_name} {t2_pts}"
                     if player:
@@ -405,14 +409,17 @@ class Plugin:
         else:
             date_diff = 0
 
+        if date_diff == 0 and datetime.now().hour < 8:
+            date_diff = -1
+
         if args['<team>']:
             team_name = args['<team>']
             if args['<number_of_games>']:
                 number_of_games = args['<number_of_games>']
             else:
-                number_of_games = self.TEAM_SCORES_GAMES 
+                number_of_games = self.TEAM_SCORES_GAMES
 
-            yield self._team_scores(team_name=team_name,number_of_games=number_of_games)
+            yield self._team_scores(team_name=team_name, number_of_games=number_of_games)
         else:
             yield self._get_scoreboard(date_diff=date_diff, score_date=score_date)
 
@@ -431,33 +438,34 @@ class Plugin:
         if args['<season>']:
             season = args['<season>']
         else:
-            season=self.CURRENT_SEASON
+            season = self.CURRENT_SEASON
 
-        standings = self.leaguestandings.LeagueStandings(league_id="00",season=season,season_type="Regular Season").get_normalized_dict()['Standings']
-
+        standings = self.leaguestandings.LeagueStandings(
+            league_id="00", season=season, season_type="Regular Season").get_normalized_dict()['Standings']
 
         row_count = 1
         teams = []
         for row in standings:
             if not conf or row['Conference'] == conf:
                 win_pct = f"{row['WinPCT']:.3F}"[1:]
-                streak = str(row['strCurrentStreak']).replace(' ','')
+                streak = str(row['strCurrentStreak']).replace(' ', '')
                 if streak == "None":
                     streak = ""
                 else:
                     streak = f"({streak})"
-                teams.append(f" {row_count}. {row['TeamName']} {row['WINS']}-{row['LOSSES']} {win_pct} {streak}" )
+                teams.append(
+                    f" {row_count}. {row['TeamName']} {row['WINS']}-{row['LOSSES']} {win_pct} {streak}")
                 row_count += 1
                 if row_count > 12:
                     break
         if not conf:
             conf = "NBA"
         season_text = ""
-        if season !=  self.CURRENT_SEASON:
+        if season != self.CURRENT_SEASON:
             season_text = f"{season} "
 
         yield f"{season_text}{conf} Standings: {' '.join(teams)}"
-    
+
     @command(permission='view')
     def record(self, mask, target, args):
         """Team Record
@@ -468,7 +476,7 @@ class Plugin:
         if args['<season>']:
             season = args['<season>']
         else:
-            season=self.CURRENT_SEASON
+            season = self.CURRENT_SEASON
         team_name = args['<team>']
         teams = self.teams.find_teams_by_full_name(team_name)
         if not teams[0]:
@@ -476,12 +484,13 @@ class Plugin:
             return
         team_id = teams[0]['id']
 
-        standings = self.leaguestandings.LeagueStandings(league_id="00",season=season,season_type="Regular Season").get_normalized_dict()['Standings']
+        standings = self.leaguestandings.LeagueStandings(
+            league_id="00", season=season, season_type="Regular Season").get_normalized_dict()['Standings']
         record = ""
         for row in standings:
             if row['TeamID'] == team_id:
                 win_pct = f"{row['WinPCT']:.3F}"[1:]
-                streak = str(row['strCurrentStreak']).replace(' ','')
+                streak = str(row['strCurrentStreak']).replace(' ', '')
                 if streak == "None":
                     streak = ""
                 else:
@@ -490,11 +499,11 @@ class Plugin:
                     streaks = f" {row['L10'].strip()} L10 {streak}"
                 else:
                     streaks = ""
-                #<Ticket> Portland Blazers 10-10 (.500) 6-7 Conf 1-1 Div 9-1 Home 1-9 Away Lost 2
-                record = f"{row['WINS']}-{row['LOSSES']} ({win_pct}) {row['ConferenceRecord'].strip()}  Conf  {row['HOME'].strip()} Home  {row['ROAD'].strip()} Road {streaks}" 
+                # <Ticket> Portland Blazers 10-10 (.500) 6-7 Conf 1-1 Div 9-1 Home 1-9 Away Lost 2
+                record = f"{row['WINS']}-{row['LOSSES']} ({win_pct}) {row['ConferenceRecord'].strip()}  Conf  {row['HOME'].strip()} Home  {row['ROAD'].strip()} Road {streaks}"
                 break
         season_text = ""
-        if season !=  self.CURRENT_SEASON:
+        if season != self.CURRENT_SEASON:
             season_text = f" {season}"
 
         yield f"{teams[0]['full_name']}{season_text} (#{row['PlayoffRank']} Playoff): {record}"
@@ -505,14 +514,15 @@ class Plugin:
 
             %%lottery [<east_or_west>]
         """
-        standings = self.leaguestandings.LeagueStandings(league_id="00",season=self.CURRENT_SEASON,season_type="Regular Season").get_normalized_dict()['Standings']
+        standings = self.leaguestandings.LeagueStandings(
+            league_id="00", season=self.CURRENT_SEASON, season_type="Regular Season").get_normalized_dict()['Standings']
 
         conf = None
         if args['<east_or_west>'] == 'east':
             conf = "East"
         if args['<east_or_west>'] == 'west':
             conf = "West"
-        
+
         if not conf:
             standings.reverse()
 
@@ -522,14 +532,15 @@ class Plugin:
             if not conf or row['Conference'] == conf:
                 if not conf or (conf and row_count > 7):
                     win_pct = f"{row['WinPCT']:.3F}"[1:]
-                    teams.append(f" {row_count}. {row['TeamName']} {row['WINS']}-{row['LOSSES']} {win_pct}" )
+                    teams.append(
+                        f" {row_count}. {row['TeamName']} {row['WINS']}-{row['LOSSES']} {win_pct}")
                 if not conf and row_count >= 14:
                     break
                 row_count += 1
         if not conf:
             conf = "NBA"
         yield f"{conf} Lottery: {'  '.join(teams)}"
-    
+
     @command(permission='view')
     def roster(self, mask, target, args):
         """Team roster
@@ -540,7 +551,7 @@ class Plugin:
         if args['<season>']:
             season = args['<season>']
         else:
-            season=self.CURRENT_SEASON
+            season = self.CURRENT_SEASON
         team_name = args['<team>']
         teams = self.teams.find_teams_by_full_name(team_name)
         if not teams[0]:
@@ -548,25 +559,25 @@ class Plugin:
             return
         team_id = teams[0]['id']
 
-        roster = self.commonteamroster.CommonTeamRoster(team_id=team_id,season=season).get_normalized_dict()
+        roster = self.commonteamroster.CommonTeamRoster(
+            team_id=team_id, season=season).get_normalized_dict()
         coaches = roster['Coaches']
         players = roster['CommonTeamRoster']
         str_coaches = ""
         for coach in coaches:
-            if coach['IS_ASSISTANT'] == 1: # head coach
+            if coach['IS_ASSISTANT'] == 1:  # head coach
                 str_coaches = f"Coach - {coach['COACH_NAME']} "
                 break
         list_players = []
         for player in players:
             list_players.append(f"#{player['NUM']} {player['PLAYER']}")
 
-
         season_text = ""
-        if season !=  self.CURRENT_SEASON:
+        if season != self.CURRENT_SEASON:
             season_text = f" {season}"
 
         yield f"{teams[0]['full_name']}{season_text}: {str_coaches} {' '.join(list_players)}"
-    
+
     @command(permission='view')
     def headtohead(self, mask, target, args):
         """Head to head games
@@ -589,7 +600,8 @@ class Plugin:
             return
         team2_name = teams2[0]['nickname']
         team2_abbrev = teams2[0]['abbreviation']
-        games = self.leaguegamefinder.LeagueGameFinder(team_id_nullable=team1_id,season_type_nullable='Regular Season',season_nullable=self.CURRENT_SEASON).get_normalized_dict()['LeagueGameFinderResults']
+        games = self.leaguegamefinder.LeagueGameFinder(team_id_nullable=team1_id, season_type_nullable='Regular Season',
+                                                       season_nullable=self.CURRENT_SEASON).get_normalized_dict()['LeagueGameFinderResults']
         #games = self.teamgamelog.TeamGameLog(team_id=team1_id,season=self.CURRENT_SEASON,season_type_all_star="Regular Season").get_normalized_dict()['TeamGameLog']
         list_games = []
         total_w = total_l = 0
@@ -602,7 +614,6 @@ class Plugin:
                 else:
                     total_l += 1
 
-                list_games.append(f"{h2h_date(game['GAME_DATE'])} {opp_from_matchup(game['MATCHUP'])} {game['WL']} {pts}-{o_pts}")
+                list_games.append(
+                    f"{h2h_date(game['GAME_DATE'])} {opp_from_matchup(game['MATCHUP'])} {game['WL']} {pts}-{o_pts}")
         yield f"{team1_name} vs {team2_name} {total_w}-{total_l} | {' | '.join(list_games)}"
-
-
