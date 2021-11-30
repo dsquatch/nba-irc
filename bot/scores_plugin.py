@@ -56,7 +56,8 @@ class Plugin:
             'cp3': 'chris paul',
             'pg': 'paul george',
             'dame': 'damian lillard',
-            'shaq': 'shaquille o\'neal'
+            'shaq': 'shaquille o\'neal',
+            'freedom': 'enes kanter'
 
         }
         if name in nicknames:
@@ -323,7 +324,7 @@ class Plugin:
         log_str = f" {' | '.join(log_list)} "
         return log_str
 
-    def _get_scoreboard(self, date_diff=None, score_date=None):
+    def _get_scoreboard(self, date_diff=None, score_date=None, topic: bool = False):
         if score_date:
             scores = self.scoreboard.Scoreboard(game_date=score_date)
 
@@ -331,11 +332,13 @@ class Plugin:
             scores = self.scoreboard.Scoreboard(day_offset=date_diff)
         games = scores.get_normalized_dict()['GameHeader']
         score_text = ""
+        topic_text = ""
         game_status = {}
         for game in games:
-            if game['GAME_STATUS_ID'] == 1:
+            if game['GAME_STATUS_ID'] == 1 or (topic and game['GAME_STATUS_ID'] == 2):
                 if score_text != "":
                     score_text += " | "
+                    topic_text += " "
                 else:
                     score_text = f"🏀{short_date(game['GAME_DATE_EST'])}: "
                 home_team_id = game["HOME_TEAM_ID"]
@@ -343,6 +346,7 @@ class Plugin:
                 visitor_team_id = game["VISITOR_TEAM_ID"]
                 visitor_team = self.teams.find_team_name_by_id(visitor_team_id)
                 score_text += f"{home_team['nickname']} vs {visitor_team['nickname']} {game['GAME_STATUS_TEXT']}"
+                topic_text += f"{home_team['abbreviation']}@{visitor_team['abbreviation']}"
                 if game['NATL_TV_BROADCASTER_ABBREVIATION']:
                     score_text += f" \x02{game['NATL_TV_BROADCASTER_ABBREVIATION']}\x02"
 
@@ -353,6 +357,7 @@ class Plugin:
                 if score['gameStatus'] != 1:
                     if score_text != "":
                         score_text += " | "
+                        topic_text += " "
                     else:
                         score_text = f"Today: "
 
@@ -373,6 +378,10 @@ class Plugin:
                         score_text += f" {shorten(player['last_name'],8)}{stats} "
                     if score['gameStatus'] == 2:
                         score_text += f" \x02{score['gameStatusText']}\x02"
+                    if t1_pts > t2_pts:
+                        topic_text += f"{t1_name}>{t2_name}"
+                    else:
+                        topic_text += f"{t1_name}<{t2_name}"
         else:
             linescore = scores.get_normalized_dict()['LineScore']
             last_game_id = ""
@@ -392,25 +401,30 @@ class Plugin:
                         score_text += f"{t1_name} {t1_pts} {t2_name} {t2_pts}"
                         if score['GAME_ID'] in game_status:
                             score_text += f" \x02{game_status[score['GAME_ID']].replace(' - ','').strip()}\x02"
-
+        if topic:
+            return topic_text
         return score_text
 
     @command(permission='view')
     def scores(self, mask, target, args):
         """Scores
 
-            %%scores [(-l <number_of_games> <team> | <team> | -a <days_ago>  | -f <days_in_future>| -d <date> )]
+            %%scores [(-l <number_of_games> <team> | <team> | -a <days_ago>  | -f <days_in_future>| -d <date> | --topic )]
         """
 
         score_date = None
         date_diff = None
         team_name = None
+        topic = False
         if args['<days_ago>']:
             date_diff = -1 * int(args['<days_ago>'])
         elif args['<days_in_future>']:
             date_diff = int(args['<days_in_future>'])
         elif args['<date>']:
             score_date = args['<date>']
+        elif args['--topic']:
+            date_diff = 0
+            topic = True
         else:
             date_diff = 0
 
@@ -426,7 +440,7 @@ class Plugin:
 
             yield self._team_scores(team_name=team_name, number_of_games=number_of_games)
         else:
-            yield self._get_scoreboard(date_diff=date_diff, score_date=score_date)
+            yield self._get_scoreboard(date_diff=date_diff, score_date=score_date, topic=topic)
 
     @command(permission='view')
     def standings(self, mask, target, args):
@@ -607,7 +621,7 @@ class Plugin:
         team2_abbrev = teams2[0]['abbreviation']
         games = self.leaguegamefinder.LeagueGameFinder(team_id_nullable=team1_id, season_type_nullable='Regular Season',
                                                        season_nullable=self.CURRENT_SEASON).get_normalized_dict()['LeagueGameFinderResults']
-        #games = self.teamgamelog.TeamGameLog(team_id=team1_id,season=self.CURRENT_SEASON,season_type_all_star="Regular Season").get_normalized_dict()['TeamGameLog']
+        # games = self.teamgamelog.TeamGameLog(team_id=team1_id,season=self.CURRENT_SEASON,season_type_all_star="Regular Season").get_normalized_dict()['TeamGameLog']
         list_games = []
         total_w = total_l = 0
         for game in games:
