@@ -155,54 +155,6 @@ class Plugin:
         team_id = player_info.get_normalized_dict(
         )['CommonPlayerInfo'][0]['TEAM_ID']
 
-        day_offset = 0
-        if datetime.now().hour < 8:
-            day_offset = -1
-
-        scores = self.scoreboard.Scoreboard(day_offset=day_offset)
-        games = scores.get_normalized_dict()['GameHeader']
-        live_game_id = None
-        home_or_away = None
-        for game in games:
-            if game['HOME_TEAM_ID'] == team_id or game['VISITOR_TEAM_ID'] == team_id:
-                if int(game['GAME_STATUS_ID']) >= 2:
-                    if game['HOME_TEAM_ID'] == team_id:
-                        home_or_away = "home"
-                    else:
-                        home_or_away = "away"
-
-                    live_game_id = game['GAME_ID']
-                    game_status = game['GAME_STATUS_TEXT']
-                    break
-                else:
-                    break
-
-        log_str = None
-        if live_game_id:
-            box = self.boxscore.BoxScore(game_id=live_game_id)
-            game = box.game.get_dict()
-
-            if home_or_away == "home":
-                players = box.home_team_player_stats.get_dict()
-            else:
-                players = box.away_team_player_stats.get_dict()
-            for player in players:
-                if player['personId'] == player_id:
-                    log = player['statistics']
-                    game_clock = game['gameStatusText']
-                    minutes = log['minutesCalculated'].replace(
-                        "PT0", "").replace("PT", "").replace("M", "")
-                    plus_minus = log['plusMinusPoints']
-                    if plus_minus > 0:
-                        plus_minus = f"+{plus_minus}"
-                    log_str = f"{player['name']}"
-                    log_str += f" {log['points']} PT  {log['fieldGoalsMade']}-{log['fieldGoalsAttempted']} FG  {log['freeThrowsMade']}-{log['freeThrowsAttempted']} FT "
-                    log_str += f" {log['threePointersMade']}-{log['threePointersAttempted']} 3P  {log['reboundsTotal']}/{log['reboundsOffensive']} RB "
-                    log_str += f" {log['assists']} AS  {log['blocks']} BL  {log['steals']} ST  {log['turnovers']} TO  {log['foulsPersonal']} PF  {minutes} MN "
-                    log_str += f" ({plus_minus}) ({game_clock})"
-                    yield log_str
-                    return
-
         season = self.CURRENT_SEASON
         number_of_games = 1
         game_date = None
@@ -211,6 +163,55 @@ class Plugin:
             number_of_games = 1
         elif args['<number_of_games>']:
             number_of_games = args['<number_of_games>']
+
+        if number_of_games == 1:
+            day_offset = 0
+            if datetime.now().hour < 8:
+                day_offset = -1
+
+            scores = self.scoreboard.Scoreboard(day_offset=day_offset)
+            games = scores.get_normalized_dict()['GameHeader']
+            live_game_id = None
+            home_or_away = None
+            for game in games:
+                if game['HOME_TEAM_ID'] == team_id or game['VISITOR_TEAM_ID'] == team_id:
+                    if int(game['GAME_STATUS_ID']) >= 2:
+                        if game['HOME_TEAM_ID'] == team_id:
+                            home_or_away = "home"
+                        else:
+                            home_or_away = "away"
+
+                        live_game_id = game['GAME_ID']
+                        game_status = game['GAME_STATUS_TEXT']
+                        break
+                    else:
+                        break
+
+            log_str = None
+            if live_game_id:
+                box = self.boxscore.BoxScore(game_id=live_game_id)
+                game = box.game.get_dict()
+
+                if home_or_away == "home":
+                    players = box.home_team_player_stats.get_dict()
+                else:
+                    players = box.away_team_player_stats.get_dict()
+                for player in players:
+                    if player['personId'] == player_id:
+                        log = player['statistics']
+                        game_clock = game['gameStatusText']
+                        minutes = log['minutesCalculated'].replace(
+                            "PT0", "").replace("PT", "").replace("M", "")
+                        plus_minus = log['plusMinusPoints']
+                        if plus_minus > 0:
+                            plus_minus = f"+{plus_minus}"
+                        log_str = f"{player['name']}"
+                        log_str += f" {log['points']} PT  {log['fieldGoalsMade']}-{log['fieldGoalsAttempted']} FG  {log['freeThrowsMade']}-{log['freeThrowsAttempted']} FT "
+                        log_str += f" {log['threePointersMade']}-{log['threePointersAttempted']} 3P  {log['reboundsTotal']}/{log['reboundsOffensive']} RB "
+                        log_str += f" {log['assists']} AS  {log['blocks']} BL  {log['steals']} ST  {log['turnovers']} TO  {log['foulsPersonal']} PF  {minutes} MN "
+                        log_str += f" ({plus_minus}) ({game_clock})"
+                        yield log_str
+                        return
 
         logs = self.playergamelogs.PlayerGameLogs(player_id_nullable=player_id,
                                                   last_n_games_nullable=number_of_games, date_to_nullable=game_date, date_from_nullable=game_date,
@@ -237,7 +238,7 @@ class Plugin:
             yield log_str
         else:
             log_count = len(logs['PlayerGameLogs'])
-            pts = fgm = fga = fg3m = fg3a = reb = ftm = fta = ast = blk = stl = tov = pf = 0
+            pts = fgm = fga = fg3m = fg3a = reb = ftm = fta = ast = blk = stl = tov = pf = minutes = 0
             for log in logs['PlayerGameLogs']:
                 pts += log['PTS']
                 fgm += log['FGM']
@@ -252,10 +253,11 @@ class Plugin:
                 stl += log['STL']
                 tov += log['TOV']
                 pf += log['PF']
+                minutes += int(log['MIN'])
             log_str = f"{logs['PlayerGameLogs'][0]['PLAYER_NAME']}  {avg(pts,log_count)} PT "
             for stat in [['FG', fgm, fga], ['FT', ftm, fta], ['3P', fg3m, fg3a]]:
                 log_str += f" {pct(stat[1],stat[2])} of {avg(stat[2],log_count)} {stat[0]} "
-            for stat in [['RB', reb], ['AS', ast], ['BLK', blk], ['ST', stl], ['TO', tov], ['PF', pf]]:
+            for stat in [['RB', reb], ['AS', ast], ['BLK', blk], ['ST', stl], ['TO', tov], ['PF', pf], ['MN', minutes]]:
                 log_str += f" {avg(stat[1],log_count)} {stat[0]} "
             log_str += f" (last {log_count} games)"
             yield log_str
