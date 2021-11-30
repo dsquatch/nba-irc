@@ -347,8 +347,12 @@ class Plugin:
                 visitor_team = self.teams.find_team_name_by_id(visitor_team_id)
                 score_text += f"{home_team['nickname']} vs {visitor_team['nickname']} {game['GAME_STATUS_TEXT']}"
                 topic_text += f"{home_team['abbreviation']}@{visitor_team['abbreviation']}"
-                if game['NATL_TV_BROADCASTER_ABBREVIATION']:
-                    score_text += f" \x02{game['NATL_TV_BROADCASTER_ABBREVIATION']}\x02"
+                tv = game['NATL_TV_BROADCASTER_ABBREVIATION']
+                if tv:
+                    if tv.strip() == "TNT":
+                        score_text += f" \x0304,08\x02TNT\x02\x0f"
+                    else:
+                        score_text += f" \x02{game['NATL_TV_BROADCASTER_ABBREVIATION']}\x02"
 
         if not date_diff or date_diff == 0:
             board = self.live_scoreboard.ScoreBoard().games.get_dict()
