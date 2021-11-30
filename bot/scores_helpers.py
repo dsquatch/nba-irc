@@ -1,10 +1,19 @@
 from datetime import datetime
 
 def avg(total, count):
-    return round(total / count, 1) 
+	if not total:
+		return 0
+	if not count:
+		return 0
+	return round(total / count, 1) 
 
 def pct(total, count):
-    return str(round(total / count, 3))[1:]
+	if not total:
+		return 0
+	if not count:
+		return 0
+
+	return str(round(total / count, 3))[1:]
 
 def today():
     return datetime.today().strftime("%Y-%m-%d")
