@@ -192,11 +192,14 @@ class Plugin:
                     game_clock = game['gameStatusText']
                     minutes = log['minutesCalculated'].replace(
                         "PT0", "").replace("PT", "").replace("M", "")
+                    plus_minus = log['plusMinusPoints']
+                    if plus_minus > 0:
+                        plus_minus = f"+{plus_minus}"
                     log_str = f"{player['name']}"
                     log_str += f" {log['points']} PT  {log['fieldGoalsMade']}-{log['fieldGoalsAttempted']} FG  {log['freeThrowsMade']}-{log['freeThrowsAttempted']} FT "
                     log_str += f" {log['threePointersMade']}-{log['threePointersAttempted']} 3P  {log['reboundsTotal']}/{log['reboundsOffensive']} RB "
                     log_str += f" {log['assists']} AS  {log['blocks']} BL  {log['steals']} ST  {log['turnovers']} TO  {log['foulsPersonal']} PF  {minutes} MN "
-                    log_str += f" ({log['plusMinusPoints']}) ({game_clock})"
+                    log_str += f" ({plus_minus}) ({game_clock})"
                     yield log_str
                     return
 
