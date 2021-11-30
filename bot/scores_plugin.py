@@ -1,19 +1,27 @@
 # -*- coding: utf-8 -*-
 import json
+from datetime import datetime
 
 import irc3
 from irc3.plugins.command import command
-from datetime import datetime
 
-from scores_helpers import avg, h2h_date, opp_from_matchup, pct, schedule_date, short_date, shorten, small_date, today
+from scores_helpers import (avg, h2h_date, opp_from_matchup, pct,
+                            schedule_date, short_date, shorten, small_date,
+                            today)
 
 
 @irc3.plugin
 class Plugin:
 
     def __init__(self, bot):
-        from nba_api.stats.endpoints import commonplayerinfo, commonteamroster, leaguegamefinder, scoreboard, teamgamelog, playergamelogs, playercareerstats, teamgamelogs, leaguestandings, teamdetails
-        from nba_api.live.nba.endpoints import boxscore, scoreboard as livescoreboard
+        from nba_api.live.nba.endpoints import boxscore
+        from nba_api.live.nba.endpoints import scoreboard as livescoreboard
+        from nba_api.stats.endpoints import (commonplayerinfo,
+                                             commonteamroster,
+                                             leaguegamefinder, leaguestandings,
+                                             playercareerstats, playergamelogs,
+                                             scoreboard, teamdetails,
+                                             teamgamelog, teamgamelogs)
         from nba_api.stats.static import players, teams
 
         self.bot = bot
@@ -152,7 +160,7 @@ class Plugin:
         home_or_away = None
         for game in games:
             if game['HOME_TEAM_ID'] == team_id or game['VISITOR_TEAM_ID'] == team_id:
-                if game['GAME_STATUS_ID'] >= 2:
+                if int(game['GAME_STATUS_ID']) >= 2:
                     if game['HOME_TEAM_ID'] == team_id:
                         home_or_away = "home"
                     else:
@@ -199,7 +207,10 @@ class Plugin:
         last_n_games_nullable=number_of_games,date_to_nullable=game_date,date_from_nullable=game_date,
         season_nullable=season).get_normalized_dict()
 
-        if len(logs['PlayerGameLogs']) == 1:
+        if len(logs['PlayerGameLogs']) == 0:
+            yield "No games this season"
+            return
+        elif len(logs['PlayerGameLogs']) == 1:
             log = logs['PlayerGameLogs'][0]
             name = log['PLAYER_NAME']
             matchup = opp_from_matchup(log['MATCHUP'])
