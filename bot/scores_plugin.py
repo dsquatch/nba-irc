@@ -432,9 +432,6 @@ class Plugin:
         else:
             date_diff = 0
 
-        if date_diff == 0 and datetime.now().hour < 8:
-            date_diff = -1
-
         if args['<team>']:
             team_name = args['<team>']
             if args['<number_of_games>']:
