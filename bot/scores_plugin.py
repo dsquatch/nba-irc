@@ -421,7 +421,7 @@ class Plugin:
         team_name = None
         topic = False
         if args['<days_ago>']:
-            date_diff = -1 * int(args['<days_ago>']
+            date_diff = -1 * int(args['<days_ago>'])
         elif args['<days_in_future>']:
             date_diff = int(args['<days_in_future>'])
         elif args['<date>']:
@@ -432,7 +432,7 @@ class Plugin:
         else:
             date_diff = 0
 
-        if date_ddiff == 0 and datetime.now().hour > 1 and datetime.now().hour < 8:
+        if date_diff == 0 and datetime.now().hour > 1 and datetime.now().hour < 8:
             date_diff = -1
 
         if args['<team>']:
