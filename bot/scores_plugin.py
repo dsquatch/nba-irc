@@ -167,7 +167,7 @@ class Plugin:
 
         if number_of_games == 1:
             day_offset = 0
-            if datetime.now().hour < 8:
+            if datetime.now().hour >= 1 and datetime.now().hour < 8:
                 day_offset = -1
 
             scores = self.scoreboard.Scoreboard(day_offset=day_offset)
@@ -421,7 +421,7 @@ class Plugin:
         team_name = None
         topic = False
         if args['<days_ago>']:
-            date_diff = -1 * int(args['<days_ago>'])
+            date_diff = -1 * int(args['<days_ago>']
         elif args['<days_in_future>']:
             date_diff = int(args['<days_in_future>'])
         elif args['<date>']:
@@ -431,6 +431,9 @@ class Plugin:
             topic = True
         else:
             date_diff = 0
+
+        if date_ddiff == 0 and datetime.now().hour > 1 and datetime.now().hour < 8:
+            date_diff = -1
 
         if args['<team>']:
             team_name = args['<team>']
