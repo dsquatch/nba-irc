@@ -13,7 +13,9 @@ def pct(total, count):
 	if not count:
 		return 0
 
-	return str(round(total / count, 3))[1:]
+	if total == count:
+		return "1.000"
+	return str(round(total / count, 3))[1:].ljust(4,'0')
 
 def today():
     return datetime.today().strftime("%Y-%m-%d")

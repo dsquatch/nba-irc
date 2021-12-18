@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+import re
 from datetime import datetime
 
 import irc3
@@ -48,6 +49,25 @@ class Plugin:
         cls is the newly reloaded class. old is the old instance.
         """
         return cls(old.bot)
+
+    def _get_season(self, season_text):
+        year_match  = re.search('^[0-9][0-9][0-9][0-9]', season_text)
+        year = None
+        if year_match:
+            year = int(year_match[0])
+        if not year_match:
+            year_match  = re.search('^[0-9][0-9]', season_text)
+            if year_match:
+                short_year = int(year_match[0])
+                if short_year > 35:
+                    year = int(f"19{short_year}")
+                else:
+                    year = int(f"20{short_year}")
+        if not year:
+            return None
+        next_year = f"{year + 1}"[-2:]
+        season = f"{year}-{next_year}"
+        return season
 
     def _player_name_to_id(self, name):
         nicknames = {
@@ -114,7 +134,7 @@ class Plugin:
             return
 
         if args['<season>']:
-            season = args['<season>']
+            season = self._get_season(args['<season>'])
         else:
             season = None
 
@@ -136,7 +156,7 @@ class Plugin:
             log_str += f" {pct(stat[1],stat[2])} of {avg(stat[2],log['GP'])} {stat[0]} "
         for stat in [['RB', log['REB']], ['AS', log['AST']], ['BLK', log['BLK']], ['ST', log['STL']], ['TO', log['TOV']], ['PF', log['PF']]]:
             log_str += f" {avg(stat[1],log['GP'])} {stat[0]} "
-        log_str += f" ({log['SEASON_ID']} {log['TEAM_ABBREVIATION']})"
+        log_str += f" {log['GS']}/{log['GP']} GS ({log['SEASON_ID']} {log['TEAM_ABBREVIATION']})"
         yield log_str
 
     @command(permission='view')
@@ -316,6 +336,7 @@ class Plugin:
                                               last_n_games_nullable=number_of_games).get_normalized_dict()['TeamGameLogs']
         log_list = []
         for log in logs:
+            print(log)
             pts = log['PTS']
             opts = pts + int(log['PLUS_MINUS'])
             log_list.append(
@@ -450,7 +471,7 @@ class Plugin:
     def standings(self, mask, target, args):
         """Standings
 
-            %%standings [-s <season>] [<east_or_west>] 
+            %%standings [(-s <season> | -s <season> <east_or_west> | <east_or_west>)]
         """
         conf = None
         if args['<east_or_west>'] == 'east':
@@ -458,14 +479,18 @@ class Plugin:
         if args['<east_or_west>'] == 'west':
             conf = "West"
 
+
+       
+        season = self.CURRENT_SEASON
         if args['<season>']:
-            season = args['<season>']
-        else:
-            season = self.CURRENT_SEASON
+            season = self._get_season(args['<season>'])
+        
+        print(season)
 
         standings = self.leaguestandings.LeagueStandings(
             league_id="00", season=season, season_type="Regular Season").get_normalized_dict()['Standings']
 
+        standings = sorted(standings, key = lambda i: i['WinPCT'], reverse=True)
         row_count = 1
         teams = []
         for row in standings:
@@ -497,7 +522,7 @@ class Plugin:
         """
 
         if args['<season>']:
-            season = args['<season>']
+            season = self._get_season(args['<season>'])
         else:
             season = self.CURRENT_SEASON
         team_name = args['<team>']
@@ -519,11 +544,11 @@ class Plugin:
                 else:
                     streak = f"({streak})"
                 if season == self.CURRENT_SEASON:
-                    streaks = f" {row['L10'].strip()} L10 {streak}"
+                    streaks = f" {row['L10'].strip()} L10  {streak}"
                 else:
                     streaks = ""
                 # <Ticket> Portland Blazers 10-10 (.500) 6-7 Conf 1-1 Div 9-1 Home 1-9 Away Lost 2
-                record = f"{row['WINS']}-{row['LOSSES']} ({win_pct}) {row['ConferenceRecord'].strip()}  Conf  {row['HOME'].strip()} Home  {row['ROAD'].strip()} Road {streaks}"
+                record = f"{row['WINS']}-{row['LOSSES']}  ({win_pct})  {row['ConferenceRecord'].strip()} Conf  {row['HOME'].strip()} Home  {row['ROAD'].strip()} Road  {streaks}"
                 break
         season_text = ""
         if season != self.CURRENT_SEASON:
@@ -546,8 +571,10 @@ class Plugin:
         if args['<east_or_west>'] == 'west':
             conf = "West"
 
-        if not conf:
-            standings.reverse()
+        reverse = False 
+        if conf:
+            reverse = True
+        standings = sorted(standings, key = lambda i: i['WinPCT'], reverse=reverse)
 
         row_count = 1
         teams = []
@@ -572,7 +599,7 @@ class Plugin:
         """
 
         if args['<season>']:
-            season = args['<season>']
+            season = self._get_season(args['<season>'])
         else:
             season = self.CURRENT_SEASON
         team_name = args['<team>']
