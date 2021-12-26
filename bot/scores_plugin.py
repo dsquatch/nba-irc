@@ -4,6 +4,7 @@ import re
 from datetime import datetime
 
 import irc3
+import pytz
 from irc3.plugins.command import command
 
 from scores_helpers import (avg, h2h_date, opp_from_matchup, pct,
@@ -122,10 +123,54 @@ class Plugin:
         yield player_string
 
     @command(permission='view')
+    def career(self, mask, target, args):
+        """Career stats
+
+            %%career [(all-star | playoffs | college)] <name>...
+        """
+        name = ' '.join(args['<name>'])
+        player_id = self._player_name_to_id(name)
+        if not player_id:
+            yield "Player not found."
+            return
+
+        player = self.players.find_player_by_id(player_id)
+        stats = self.playercareerstats.PlayerCareerStats(
+            player_id=player_id).get_normalized_dict()
+        if args['all-star']:
+            logs = stats['CareerTotalsAllStarSeason']
+        elif args['college']:
+            logs = stats['CareerTotalsCollegeSeason']
+        elif args['playoffs']:
+            logs = stats['CareerTotalsPostSeason']
+        else:
+            logs = stats['CareerTotalsRegularSeason']
+
+        for log in logs:
+            log_str= self.print_season(player, log)
+            yield log_str
+
+    def print_season(self, player,  log):
+        print(log)
+        log_str = f" {player['full_name']}"
+        log_str += f" {avg(log['PTS'], log['GP'])} PT "
+        for stat in [['FG', log['FGM'], log['FGA']], ['FT', log['FTM'], log['FTA']], ['3P', log['FG3M'], log['FG3A']]]:
+            log_str += f" {pct(stat[1],stat[2])} of {avg(stat[2],log['GP'])} {stat[0]} "
+        for stat in [['RB', log['REB']], ['AS', log['AST']], ['BLK', log['BLK']], ['ST', log['STL']], ['TO', log['TOV']], ['PF', log['PF']], ['MIN', log['MIN']]]:
+            log_str += f" {avg(stat[1],log['GP'])} {stat[0]} "
+        log_str += f" {log['GS']}/{log['GP']} GS"
+        if 'SEASON_ID' in log:
+            log_str += f"  ({log['SEASON_ID']}"
+            if 'TEAM_ABBREVIATION' in log:
+                log_str += f" {log['TEAM_ABBREVIATION']}"
+            log_str += ")"
+        return log_str
+
+    @command(permission='view')
     def seasonstats(self, mask, target, args):
         """Season stats
 
-            %%seasonstats (<name>... | -s <season> <name>...)
+            %%seasonstats [(all-star | playoffs | college)] (<name>... | -s <season> <name>...)
         """
         name = ' '.join(args['<name>'])
         player_id = self._player_name_to_id(name)
@@ -138,26 +183,29 @@ class Plugin:
         else:
             season = None
 
+
         player = self.players.find_player_by_id(player_id)
         stats = self.playercareerstats.PlayerCareerStats(
             player_id=player_id).get_normalized_dict()
-        logs = stats['SeasonTotalsRegularSeason']
+        if args['all-star']:
+            logs = stats['SeasonTotalsAllStarSeason']
+        elif args['college']:
+            logs = stats['SeasonTotalsCollegeSeason']
+        elif args['playoffs']:
+            logs = stats['SeasonTotalsPostSeason']
+        else:
+            logs = stats['SeasonTotalsRegularSeason']
+
+        log_str = ""
         if season:
-            log = logs[-1]
             for log in logs:
                 if log['SEASON_ID'] == season:
-                    break
-        else:
-            log = logs[-1]
+                    log_str = self.print_season(player, log)
+                    yield log_str
+        if log_str == "":
+            yield self.print_season(player, logs[-1])
 
-        log_str = f" {player['full_name']}"
-        log_str += f" {avg(log['PTS'], log['GP'])} PT "
-        for stat in [['FG', log['FGM'], log['FGA']], ['FT', log['FTM'], log['FTA']], ['3P', log['FG3M'], log['FG3A']]]:
-            log_str += f" {pct(stat[1],stat[2])} of {avg(stat[2],log['GP'])} {stat[0]} "
-        for stat in [['RB', log['REB']], ['AS', log['AST']], ['BLK', log['BLK']], ['ST', log['STL']], ['TO', log['TOV']], ['PF', log['PF']]]:
-            log_str += f" {avg(stat[1],log['GP'])} {stat[0]} "
-        log_str += f" {log['GS']}/{log['GP']} GS ({log['SEASON_ID']} {log['TEAM_ABBREVIATION']})"
-        yield log_str
+
 
     @command(permission='view')
     def stats(self, mask, target, args):
@@ -452,9 +500,10 @@ class Plugin:
             topic = True
         else:
             date_diff = 0
+            score_date = datetime.now(pytz.timezone('US/Pacific')).strftime("%m/%d/%Y")
 
-        if date_diff == 0 and datetime.now().hour > 1 and datetime.now().hour < 8:
-            date_diff = -1
+        #if date_diff == 0 and datetime.now().hour > 1 and datetime.now().hour < 8:
+        #    date_diff = -1
 
         if args['<team>']:
             team_name = args['<team>']
