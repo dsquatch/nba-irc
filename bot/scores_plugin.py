@@ -163,6 +163,8 @@ class Plugin:
             log_str += f"  ({log['SEASON_ID']}"
             if 'TEAM_ABBREVIATION' in log:
                 log_str += f" {log['TEAM_ABBREVIATION']}"
+            if 'SCHOOL_NAME' in log:
+                log_str += f" {log['SCHOOL_NAME']}"
             log_str += ")"
         return log_str
 
