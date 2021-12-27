@@ -5,9 +5,10 @@ from datetime import datetime
 
 import irc3
 import pytz
+from dateutil import parser
 from irc3.plugins.command import command
 
-from scores_helpers import (avg, h2h_date, opp_from_matchup, pct,
+from scores_helpers import (avg, h2h_date, opp_from_matchup, pct, rank,
                             schedule_date, short_date, shorten, small_date,
                             today)
 
@@ -111,11 +112,11 @@ class Plugin:
             stats = player['PlayerHeadlineStats'][0]
         else:
             stats = None
-        player_string = f"{player_info['DISPLAY_FIRST_LAST']} ({player_info['TEAM_NAME']} {player_info['POSITION']}  #{player_info['JERSEY']}) - {player_info['HEIGHT']} {player_info['WEIGHT']}lbs - {player_info['SCHOOL']}  "
+        player_string = f"{player_info['DISPLAY_FIRST_LAST']} {small_date(player_info['BIRTHDATE'])} ({player_info['TEAM_NAME']} {player_info['POSITION']}  #{player_info['JERSEY']}) - {player_info['HEIGHT']} {player_info['WEIGHT']}lbs - {player_info['SCHOOL']}  "
         if player_info['DRAFT_YEAR'] == "Undrafted":
             player_string += f" (Undrafted) "
         else:
-            player_string += f"(#{player_info['DRAFT_NUMBER']} {player_info['DRAFT_YEAR']})"
+            player_string += f"(#{player_info['DRAFT_NUMBER']} R{player_info['DRAFT_ROUND']} {player_info['DRAFT_YEAR']})"
         if player_info['FROM_YEAR']:
             player_string += f" ({player_info['FROM_YEAR']}-{player_info['TO_YEAR']})"
         if stats:
@@ -207,6 +208,55 @@ class Plugin:
         if log_str == "":
             yield self.print_season(player, logs[-1])
 
+    def print_ranks(self, player,  log):
+        print(log)
+        # {'PLAYER_ID': 203081, 'SEASON_ID': '2021-22', 'LEAGUE_ID': '00', 'TEAM_ID': 1610612757, 'TEAM_ABBREVIATION': 'POR', 'PLAYER_AGE': 'NR', 'GP': 'NR', 'GS': 'NR', 'RANK_MIN': 53, 'RANK_FGM': 33, 'RANK_FGA': 20, 'RANK_FG_PCT': 113, 'RANK_FG3M': 19, 'RANK_FG3A': 10, 'RANK_FG3_PCT': 125, 'RANK_FTM': 14, 'RANK_FTA': 19, 'RANK_FT_PCT': 8, 'RANK_OREB': 250, 'RANK_DREB': 131, 'RANK_REB': 164, 'RANK_AST': 12, 'RANK_STL': 204, 'RANK_BLK': 159, 'RANK_TOV': 33, 'RANK_PTS': 19, 'RANK_EFF': 41}
+        log_str = f" {player['full_name']}"
+        for stat in ['PTS',  'FGM', 'FGA','FG_PCT', 'FTM', 'FTA','FT_PCT', 'FG3M', 'FG3A','FG3_PCT','REB','AST', 'BLK', 'STL', 'TOV','EFF' ]:
+            log_str += f" {rank(stat,log['RANK_'+stat])} "
+        if 'SEASON_ID' in log:
+            log_str += f"  ({log['SEASON_ID']}"
+            if 'TEAM_ABBREVIATION' in log:
+                log_str += f" {log['TEAM_ABBREVIATION']}"
+            log_str += ")"
+        return log_str
+
+    @command(permission='view')
+    def seasonranks(self, mask, target, args):
+        """Season ranks
+
+            %%seasonranks [(playoffs)] (<name>... | -s <season> <name>...)
+        """
+        name = ' '.join(args['<name>'])
+        player_id = self._player_name_to_id(name)
+        if not player_id:
+            yield "Player not found."
+            return
+
+        if args['<season>']:
+            season = self._get_season(args['<season>'])
+        else:
+            season = None
+
+
+        player = self.players.find_player_by_id(player_id)
+        stats = self.playercareerstats.PlayerCareerStats(
+            player_id=player_id).get_normalized_dict()
+        if args['playoffs']:
+            logs = stats['SeasonRankingsPostSeason']
+        else:
+            logs = stats['SeasonRankingsRegularSeason']
+
+        log_str = ""
+        if season:
+            for log in logs:
+                if log['SEASON_ID'] == season:
+                    log_str = self.print_ranks(player, log)
+                    yield log_str
+        if log_str == "":
+            yield self.print_ranks(player, logs[-1])
+
+
 
 
     @command(permission='view')
@@ -231,7 +281,12 @@ class Plugin:
         game_date = None
         if args['<date>']:
             game_date = args['<date>']
-            number_of_games = 1
+            game_datetime = parser.parse(game_date)
+            if game_datetime.month < 7:
+                season = self._get_season(str(game_datetime.year -1))
+            else:
+                season = self._get_season(str(game_datetime.year))
+            number_of_games = 0
         elif args['<number_of_games>']:
             number_of_games = args['<number_of_games>']
 
@@ -240,7 +295,9 @@ class Plugin:
             if datetime.now().hour >= 1 and datetime.now().hour < 8:
                 day_offset = -1
 
-            scores = self.scoreboard.Scoreboard(day_offset=day_offset)
+            today_date = datetime.now(pytz.timezone('US/Pacific')).strftime("%m/%d/%Y")
+            scores = self.scoreboard.Scoreboard(game_date=today_date)
+
             games = scores.get_normalized_dict()['GameHeader']
             live_game_id = None
             home_or_away = None
@@ -289,7 +346,7 @@ class Plugin:
                                                   season_nullable=season).get_normalized_dict()
 
         if len(logs['PlayerGameLogs']) == 0:
-            yield "No games this season"
+            yield "No games found."
             return
         elif len(logs['PlayerGameLogs']) == 1:
             log = logs['PlayerGameLogs'][0]

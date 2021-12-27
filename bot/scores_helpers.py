@@ -1,5 +1,9 @@
 from datetime import datetime
 
+
+def rank(label, rank):
+    return f"#{rank} {label}"
+
 def avg(total, count):
 	if not total:
 		return 0
