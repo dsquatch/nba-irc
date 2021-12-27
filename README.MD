@@ -9,7 +9,7 @@ This bot would probably work with other versions of python, but this one is know
 1. `pyenv install 3.8.10`
 2. from the cloned repository: `pyenv local 3.8.10`
 3. `pyenv exec pip install --upgrade pip`
-4. `pyenv exec pip install numpy irc3 nba-api`
+4. `pyenv exec pip install numpy irc3 nba-api pytz`
 5. `cd bot`
 6. `cp config.ini yourbotname.ini`
 7. Edit the `yourbotname.ini` file to change the bot name, server and default channels.
