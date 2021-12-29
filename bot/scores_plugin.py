@@ -669,16 +669,14 @@ class Plugin:
         for i in [-3, -2, -1]:
             if 'description' in pbp[i]:
                 msg += f" | {pbp[i]['description']} "
-                if i == -1:
-                    clock = pbp[i]['clock']
-                    period = pbp[i]['period']
-                    if period in [1,2,3,4]:
-                        period = f"{period}Q"
-                    # 'clock': 'PT08M17.00S',
+                clock = pbp[i]['clock']
+                period = pbp[i]['period']
+                if period in [1,2,3,4]:
+                    period = f"Q{period}"
+                # 'clock': 'PT08M17.00S',
+                clock = clock.replace('PT','').replace('M',':').replace('.00S','')
 
-                    clock = clock.replace('PT','').replace('M',':').replace('S','')
-
-                    score_text += f"{home_team['nickname']} {pbp[i]['scoreHome']} - {visitor_team['nickname']} {pbp[i]['scoreAway']} ({period} {clock}) "
+                score_text = f"{home_team['nickname']} {pbp[i]['scoreHome']} - {visitor_team['nickname']} {pbp[i]['scoreAway']} ({clock} {period}) "
                 
         yield score_text + msg
 
