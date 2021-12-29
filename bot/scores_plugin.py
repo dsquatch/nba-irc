@@ -17,7 +17,7 @@ from scores_helpers import (avg, h2h_date, opp_from_matchup, pct, rank,
 class Plugin:
 
     def __init__(self, bot):
-        from nba_api.live.nba.endpoints import boxscore
+        from nba_api.live.nba.endpoints import boxscore, playbyplay
         from nba_api.live.nba.endpoints import scoreboard as livescoreboard
         from nba_api.stats.endpoints import (commonplayerinfo,
                                              commonteamroster,
@@ -35,6 +35,7 @@ class Plugin:
         self.scoreboard = scoreboard
         self.teamgamelog = teamgamelog
         self.live_scoreboard = livescoreboard
+        self.playbyplay = playbyplay
         self.playergamelogs = playergamelogs
         self.playercareerstats = playercareerstats
         self.teamdetails = teamdetails
@@ -621,6 +622,68 @@ class Plugin:
             season_text = f"{season} "
 
         yield f"{season_text}{conf} Standings: {' '.join(teams)}"
+
+    @command(permission='view')
+    def playbyplay(self, mask, target, args):
+        """Play by play
+
+            %%playbyplay <team>
+        """
+
+        team_name = args['<team>']
+        teams = self.teams.find_teams_by_full_name(team_name)
+        if not teams[0]:
+            yield "Team not found."
+            return
+        team_id = teams[0]['id']
+        today_date = datetime.now(pytz.timezone('US/Pacific')).strftime("%m/%d/%Y")
+        scores = self.scoreboard.Scoreboard(game_date=today_date)
+
+        games = scores.get_normalized_dict()['GameHeader']
+        live_game_id = None
+        home_or_away = None
+        score_text = ""
+        for game in games:
+            if game['HOME_TEAM_ID'] == team_id or game['VISITOR_TEAM_ID'] == team_id:
+                if game['HOME_TEAM_ID'] == team_id:
+                    home_or_away = "home"
+                else:
+                    home_or_away = "away"
+
+                live_game_id = game['GAME_ID']
+                game_status = game['GAME_STATUS_TEXT']
+
+                home_team_id = game["HOME_TEAM_ID"]
+                home_team = self.teams.find_team_name_by_id(home_team_id)
+                visitor_team_id = game["VISITOR_TEAM_ID"]
+                visitor_team = self.teams.find_team_name_by_id(visitor_team_id)
+                break
+        if not live_game_id:
+            yield "Live game not found."
+            return
+        end_period=4
+        start_period=1
+        pbp = self.playbyplay.PlayByPlay(game_id=live_game_id).get_dict()['game']['actions']
+        print(pbp)
+        msg = ""
+        for i in [-3, -2, -1]:
+            if 'description' in pbp[i]:
+                msg += f" | {pbp[i]['description']} "
+                if i == -1:
+                    clock = pbp[i]['clock']
+                    period = pbp[i]['period']
+                    if period in [1,2,3,4]:
+                        period = f"{period}Q"
+                    # 'clock': 'PT08M17.00S',
+
+                    clock = clock.replace('PT','').replace('M',':').replace('S','')
+
+                    score_text += f"{home_team['nickname']} {pbp[i]['scoreHome']} - {visitor_team['nickname']} {pbp[i]['scoreAway']} ({period} {clock}) "
+                
+        yield score_text + msg
+
+
+
 
     @command(permission='view')
     def record(self, mask, target, args):
