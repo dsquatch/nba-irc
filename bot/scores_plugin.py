@@ -674,7 +674,7 @@ class Plugin:
             if home_or_away == "home":
                 if prob[i*-1][stat]:
                     win_chance = prob[i*-1][stat]
-        msg = f"{home_team['nickname']} win chance = {win_chance * 100}%"
+        msg = f"{home_team['nickname']} win chance = {round(win_chance,3) * 100}%"
         yield msg
 
     @command(permission='view')
