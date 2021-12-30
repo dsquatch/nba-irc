@@ -24,7 +24,8 @@ class Plugin:
                                              leaguegamefinder, leaguestandings,
                                              playercareerstats, playergamelogs,
                                              scoreboard, teamdetails,
-                                             teamgamelog, teamgamelogs)
+                                             teamgamelog, teamgamelogs,
+                                             winprobabilitypbp)
         from nba_api.stats.static import players, teams
 
         self.bot = bot
@@ -40,6 +41,7 @@ class Plugin:
         self.playercareerstats = playercareerstats
         self.teamdetails = teamdetails
         self.teamgamelogs = teamgamelogs
+        self.winprobabilitypbp = winprobabilitypbp
         self.boxscore = boxscore
         self.players = players
         self.teams = teams
@@ -622,6 +624,58 @@ class Plugin:
             season_text = f"{season} "
 
         yield f"{season_text}{conf} Standings: {' '.join(teams)}"
+
+    @command(permission='view')
+    def winchance(self, mask, target, args):
+        """Win probability
+
+            %%winchance <team>
+        """
+
+        team_name = args['<team>']
+        teams = self.teams.find_teams_by_full_name(team_name)
+        if not teams[0]:
+            yield "Team not found."
+            return
+        team_id = teams[0]['id']
+        today_date = datetime.now(pytz.timezone('US/Pacific')).strftime("%m/%d/%Y")
+        scores = self.scoreboard.Scoreboard(game_date=today_date)
+
+        games = scores.get_normalized_dict()['GameHeader']
+        live_game_id = None
+        home_or_away = None
+        score_text = ""
+        for game in games:
+            if game['HOME_TEAM_ID'] == team_id or game['VISITOR_TEAM_ID'] == team_id:
+                if game['HOME_TEAM_ID'] == team_id:
+                    home_or_away = "home"
+                    stat = 'HOME_PCT'
+                else:
+                    home_or_away = "away"
+                    stat = 'AWAY_PCT'
+
+                live_game_id = game['GAME_ID']
+                game_status = game['GAME_STATUS_TEXT']
+
+                home_team_id = game["HOME_TEAM_ID"]
+                home_team = self.teams.find_team_name_by_id(home_team_id)
+                visitor_team_id = game["VISITOR_TEAM_ID"]
+                visitor_team = self.teams.find_team_name_by_id(visitor_team_id)
+                break
+        if not live_game_id:
+            yield "Live game not found."
+            return
+
+        prob = self.winprobabilitypbp.WinProbabilityPBP(game_id=live_game_id,run_type='each second').get_normalized_dict()['WinProbPBP']
+        win_chance = 0
+        i = 0
+        while win_chance == 0:
+            i = i +1
+            if home_or_away == "home":
+                if prob[i*-1][stat]:
+                    win_chance = prob[i*-1][stat]
+        msg = f"{home_team['nickname']} win chance = {win_chance * 100}%"
+        yield msg
 
     @command(permission='view')
     def playbyplay(self, mask, target, args):
