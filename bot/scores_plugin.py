@@ -669,7 +669,7 @@ class Plugin:
         prob = self.winprobabilitypbp.WinProbabilityPBP(game_id=live_game_id,run_type='each second').get_normalized_dict()['WinProbPBP']
         win_chance = 0
         i = 0
-        while win_chance == 0:
+        while win_chance == 0 and i < len(prob):
             i = i +1
             if home_or_away == "home":
                 if prob[i*-1][stat]:
