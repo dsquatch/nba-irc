@@ -652,7 +652,7 @@ class Plugin:
                     stat = 'HOME_PCT'
                 else:
                     home_or_away = "away"
-                    stat = 'AWAY_PCT'
+                    stat = 'VISITOR_PCT'
 
                 live_game_id = game['GAME_ID']
                 game_status = game['GAME_STATUS_TEXT']
@@ -671,10 +671,14 @@ class Plugin:
         i = 0
         while win_chance == 0 and i < len(prob):
             i = i +1
-            if home_or_away == "home":
-                if prob[i*-1][stat]:
-                    win_chance = prob[i*-1][stat]
-        msg = f"{home_team['nickname']} win chance = {round(win_chance,3) * 100}%"
+            if prob[i*-1][stat]:
+                win_chance = prob[i*-1][stat]
+        if home_or_away == "home":
+            str_team = home_team['nickname']
+        else:
+            str_team = visitor_team['nickname']
+
+        msg = f"{str_team} win chance = {round(win_chance,3) * 100}%"
         yield msg
 
     @command(permission='view')
