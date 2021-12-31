@@ -727,7 +727,7 @@ class Plugin:
         pbp = self.playbyplay.PlayByPlay(game_id=live_game_id).get_dict()['game']['actions']
         print(pbp)
         msg = ""
-        for i in [-3, -2, -1]:
+        for i in [-5, -4, -3, -2, -1]:
             if 'description' in pbp[i]:
                 msg += f" | {pbp[i]['description']} "
                 clock = pbp[i]['clock']
