@@ -679,7 +679,7 @@ class Plugin:
         else:
             str_team = visitor_team['nickname']
 
-        msg = f"{home_team['nickame']} {prob[i*-1]['HOME_PTS']} - {visitor_team['nickname']} {prob[i*-1]['VISITOR_PTS']} |   {str_team} win chance: {round(win_chance * 100,2)}%"
+        msg = f"{home_team['nickname']} {prob[i*-1]['HOME_PTS']} - {visitor_team['nickname']} {prob[i*-1]['VISITOR_PTS']} |   {str_team} win chance: {round(win_chance * 100,2)}%"
         yield msg
 
     @command(permission='view')
