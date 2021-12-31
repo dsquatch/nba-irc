@@ -669,6 +669,7 @@ class Plugin:
         prob = self.winprobabilitypbp.WinProbabilityPBP(game_id=live_game_id,run_type='each second').get_normalized_dict()['WinProbPBP']
         win_chance = 0
         i = 0
+        print(prob)
         while win_chance == 0 and i < len(prob):
             i = i +1
             if prob[i*-1][stat]:
@@ -678,7 +679,7 @@ class Plugin:
         else:
             str_team = visitor_team['nickname']
 
-        msg = f"{str_team} win chance = {round(win_chance,3) * 100}%"
+        msg = f"{home_team['nickame']} {prob[i*-1]['HOME_PTS']} - {visitor_team['nickname']} {prob[i*-1]['VISITOR_PTS']} |   {str_team} win chance: {round(win_chance * 100,2)}%"
         yield msg
 
     @command(permission='view')
