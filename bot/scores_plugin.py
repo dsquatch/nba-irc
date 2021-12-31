@@ -666,7 +666,9 @@ class Plugin:
             yield "Live game not found."
             return
 
-        prob = self.winprobabilitypbp.WinProbabilityPBP(game_id=live_game_id,run_type='each second').get_normalized_dict()['WinProbPBP']
+        prob = self.winprobabilitypbp.WinProbabilityPBP(game_id=live_game_id,run_type='each second')
+        prob = prob.get_normalized_dict()['WinProbPBP']
+        prob = sorted(prob, key=lambda x: x['HOME_PTS'] + x['VISITOR_PTS'])
         win_chance = 0
         i = 0
         print(prob)
@@ -679,7 +681,7 @@ class Plugin:
         else:
             str_team = visitor_team['nickname']
 
-        msg = f"{home_team['nickname']} {prob[i*-1]['HOME_PTS']} - {visitor_team['nickname']} {prob[i*-1]['VISITOR_PTS']} |   {str_team} win chance: {round(win_chance * 100,2)}%"
+        msg = f" {str_team} win chance: {round(win_chance * 100,2)}% (calculated from score {home_team['nickname']} {prob[i*-1]['HOME_PTS']} - {visitor_team['nickname']} {prob[i*-1]['VISITOR_PTS']} )"
         yield msg
 
     @command(permission='view')
